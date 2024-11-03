@@ -97,7 +97,7 @@ j     : '. ~/my-zshrc/.j/j.sh'        - Shorthand select java sdk
 sdkswap: '. ~/my-zshrc/.j/sdkswap.sh' - Fuzzy select sdk by version
 
 # Function to extract various archives
-extract      : 'extract <file>'       - Extract various archive formats
+extract      : 'extract <file> <opt:folder>' - Extract various archive formats. Pass d to use the files name as the folder
 search_files : 'search_files <pattern>' - Search for a pattern in files
 
 # Function to update .zshrc in my GitHub repository
@@ -120,20 +120,32 @@ alias sdkswap=". ~/my-zshrc/.j/sdkswap.sh" # Fuzzy select sdk by version
 
 # Function to extract various archives
 extract () {
-   if [ -f $1 ] ; then
+   if [ -f "$1" ]; then
+       # Check if second argument is provided as 'd' for default folder naming
+       if [ "$2" = "d" ]; then
+           # Extract file name without extension for the default folder name
+           target_dir=$(basename "$1" | sed 's/\(.*\)\..*/\1/')
+       else
+           # Otherwise, use provided directory or default to current directory
+           target_dir="${2:-.}"
+       fi
+       
+       # Create target directory if it doesn't exist
+       mkdir -p "$target_dir"
+       
        case $1 in
-           *.tar.xz)    tar xvf $1     ;;
-           *.tar.bz2)   tar xjf $1     ;;
-           *.tar.gz)    tar xzf $1     ;;
-           *.bz2)       bunzip2 $1     ;;
-           *.rar)       unrar e $1     ;;
-           *.gz)        gunzip $1      ;;
-           *.tar)       tar xf $1      ;;
-           *.tbz2)      tar xjf $1     ;;
-           *.tgz)       tar xzf $1     ;;
-           *.zip)       unzip $1       ;;
-           *.Z)         uncompress $1  ;;
-           *.7z)        7z x $1        ;;
+           *.tar.xz)    tar -xvf "$1" -C "$target_dir" ;;
+           *.tar.bz2)   tar -xjf "$1" -C "$target_dir" ;;
+           *.tar.gz)    tar -xzf "$1" -C "$target_dir" ;;
+           *.bz2)       bunzip2 -c "$1" > "$target_dir/$(basename "$1" .bz2)" ;;
+           *.rar)       unrar e "$1" "$target_dir" ;;
+           *.gz)        gunzip -c "$1" > "$target_dir/$(basename "$1" .gz)" ;;
+           *.tar)       tar -xf "$1" -C "$target_dir" ;;
+           *.tbz2)      tar -xjf "$1" -C "$target_dir" ;;
+           *.tgz)       tar -xzf "$1" -C "$target_dir" ;;
+           *.zip)       unzip "$1" -d "$target_dir" ;;
+           *.Z)         uncompress -c "$1" > "$target_dir/$(basename "$1" .Z)" ;;
+           *.7z)        7z x "$1" -o"$target_dir" ;;
            *)           echo "'$1' cannot be extracted via extract()" ;;
        esac
    else
@@ -234,4 +246,3 @@ alias spring-debug-wait="mvn spring-boot:run -Dspring-boot.run.jvmArguments='-Xd
 
 #python
 alias python-test-coverage="PYTHONPATH=src pytest --cov-report term-missing --cov=src"
-
